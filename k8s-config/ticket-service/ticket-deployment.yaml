@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket
+  namespace: rsoi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ticket
+  template:
+    metadata:
+      labels:
+        app: ticket
+    spec:
+      containers:
+      - name: ticket
+        image: squeakbug73/ticket-service:0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8070
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ticket-config
+              key: database-url
+        - name: LISTEN_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: ticket-config
+              key: listen-address

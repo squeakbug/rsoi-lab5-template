@@ -1,0 +1,201 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v1
+servers:
+- url: http://localhost:8070
+paths:
+  /api/v1/tickets:
+    get:
+      tags:
+      - Ticket REST API operations
+      parameters:
+        - name: username
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: flight_number
+          in: query
+          required: false
+          schema:
+            type: string
+      summary: Get all Tickets
+      operationId: listTickets
+      responses:
+        "200":
+          description: All Tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketResponse'
+    post:
+      tags:
+      - Ticket REST API operations
+      summary: Create new Ticket
+      operationId: createTicket
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketRequest'
+        required: true
+      responses:
+        "201":
+          description: Created new Ticket
+          headers:
+            Location:
+              description: Path to new Ticket
+              style: simple
+              schema:
+                type: string
+        "400":
+          description: Invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+  /api/v1/tickets/{ticketUid}:
+    get:
+      tags:
+      - Ticket REST API operations
+      summary: Get Ticket by ID
+      operationId: getTicket
+      parameters:
+      - name: ticketUid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Ticket for ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketResponse'
+        "404":
+          description: Not found Ticket for ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Ticket REST API operations
+      summary: Remove Ticket by ID
+      operationId: editTicket_1
+      parameters:
+      - name: ticketUid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Ticket for ID was removed
+    patch:
+      tags:
+      - Ticket REST API operations
+      summary: Update Ticket by ID
+      operationId: editTicket
+      parameters:
+      - name: ticketUid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketRequest'
+        required: true
+      responses:
+        "200":
+          description: Ticket for ID was updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketResponse'
+        "400":
+          description: Invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        "404":
+          description: Not found Ticket for ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    ValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+    TicketRequest:
+      required:
+      - ticket_uid
+      - username
+      - flight_number
+      - price
+      - status
+      type: object
+      properties:
+        ticket_uid:
+          type: string
+          format: uuid
+        username:
+          type: string
+        flight_number:
+          type: string
+        price:
+          type: integer
+          format: int32
+        status:
+          type: string
+          enum: ['PAID', 'CANCELED']
+    TicketResponse:
+      required:
+      - id
+      - ticket_uid
+      - username
+      - flight_number
+      - price
+      - status
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        ticket_uid:
+          type: string
+          format: uuid
+        username:
+          type: string
+        flight_number:
+          type: string
+        price:
+          type: integer
+          format: int32
+        status:
+          type: string
+          enum: ['PAID', 'CANCELED']
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string

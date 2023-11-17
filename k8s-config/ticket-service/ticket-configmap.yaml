@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticket-config
+  namespace: rsoi
+data:
+  database-url: postgres://program:test@postgres/tickets
+  listen-address: 0.0.0.0:8070

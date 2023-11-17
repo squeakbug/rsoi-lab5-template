@@ -1,0 +1,135 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v1
+servers:
+- url: http://localhost:8060
+paths:
+  /api/v1/flights:
+    get:
+      tags:
+      - Flight REST API operations
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - name: flight_number
+          in: query
+          required: false
+          schema:
+            type: string
+      summary: Получить список всех перелетов
+      operationId: listFlights
+      responses:
+        "200":
+          description: Список рейсов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginationResponse"
+  /api/v1/flights/{id}:
+    get:
+      tags:
+      - Flights REST API operations
+      summary: Get Flight inforation by ID
+      operationId: getFlight
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Flight for ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightResponse'
+        "404":
+          description: Not found Flight for ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    FlightResponse:
+      type: object
+      example:
+        {
+          "flightNumber": "AFL031",
+          "fromAirport": "Санкт-Петербург Пулково",
+          "toAirport": "Москва Шереметьево",
+          "date": "2021-10-08 20:00",
+          "price": 1500
+        }
+      properties:
+        flightNumber:
+          type: string
+          description: Номер полета
+        fromAirport:
+          type: string
+          description: Страна и аэропорт прибытия
+        toAirport:
+          type: string
+          description: Страна и аэропорт прибытия
+        date:
+          type: string
+          description: Дата и время вылета
+          format: ISO 8601
+        price:
+          type: number
+          description: Стоимость
+    PaginationResponse:
+      type: object
+      example:
+        {
+          "page": 1,
+          "pageSize": 1,
+          "totalElements": 1,
+          "items": [
+            {
+              "flightNumber": "AFL031",
+              "fromAirport": "Санкт-Петербург Пулково",
+              "toAirport": "Москва Шереметьево",
+              "date": "2021-10-08 20:00",
+              "price": 1500
+            }
+          ]
+        }
+      properties:
+        page:
+          type: integer
+          format: i32
+          description: Номер страницы
+        pageSize:
+          type: integer
+          format: i32
+          description: Количество элементов на странице
+        totalElements:
+          type: integer
+          format: i32
+          description: Общее количество элементов
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlightResponse"
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string

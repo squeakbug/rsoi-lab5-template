@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bonus
+  namespace: rsoi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bonus
+  template:
+    metadata:
+      labels:
+        app: bonus
+    spec:
+      containers:
+      - name: bonus
+        image: squeakbug73/bonus-service:0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8050
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: bonus-config
+              key: database-url
+        - name: LISTEN_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: bonus-config
+              key: listen-address

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flight
+  namespace: rsoi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flight
+  template:
+    metadata:
+      labels:
+        app: flight
+    spec:
+      containers:
+      - name: flight
+        image: squeakbug73/flight-service:0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8060
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: flight-config
+              key: database-url
+        - name: LISTEN_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: flight-config
+              key: listen-address

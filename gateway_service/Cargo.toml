@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "core",
+    "ticket-service-api",
+    "bonus-service-api",
+    "flight-service-api",
+    "ticket-service-api",
+]

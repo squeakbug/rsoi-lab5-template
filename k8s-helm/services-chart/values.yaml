@@ -1,0 +1,31 @@
+bonus:
+  service:
+    port: 8050
+    image:
+      name: squeakbug73/bonus-service
+      version: "0.1"
+    database: 
+      name: bonus
+flight:
+  service:
+    port: 8060
+    image:
+      name: squeakbug73/flight-service
+      version: "0.1"
+    database:
+      name: flight
+ticket:
+  service:
+    port: 8070
+    image:
+      name: squeakbug73/ticket-service
+      version: "0.1"
+    database: 
+      name: ticket
+gateway:
+  service:
+    port: 8080
+    image:
+      name: squeakbug73/gateway-service
+      version: "0.1"
+    isGateway: true

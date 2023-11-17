@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+  namespace: rsoi
+data:
+  listen-address: 0.0.0.0:8080
+  bonus-service-address: http://bonus.rsoi.svc.cluster.local:8050
+  flight-service-address: http://flight.rsoi.svc.cluster.local:8060
+  ticket-service-address: http://ticket.rsoi.svc.cluster.local:8070

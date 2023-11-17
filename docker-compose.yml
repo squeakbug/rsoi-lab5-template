@@ -1,0 +1,114 @@
+version: "3"
+services:
+  postgres:
+    image: library/postgres:13
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./postgres/:/docker-entrypoint-initdb.d/
+    ports:
+      - "5432:5432"
+    networks:
+      - gateway-service
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  gateway-service:
+    build: ./gateway_service
+    image: squeakbug73/gateway-service:0.1
+    restart: unless-stopped
+    container_name: gateway-service
+    environment:
+      - DB_HOST=postgres
+      - LISTEN_ADDRESS=gateway-service:8080
+      - BONUS_SERVICE_ADDRESS=http://bonus-service:8050
+      - FLIGHT_SERVICE_ADDRESS=http://flight-service:8060
+      - TICKET_SERVICE_ADDRESS=http://ticket-service:8070
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gateway-service
+
+  ticket-service:
+    build: ./ticket_service
+    image: squeakbug73/ticket-service:0.1
+    restart: unless-stopped
+    container_name: ticket-service
+    environment:
+      - DB_HOST=postgres
+      - LISTEN_ADDRESS=ticket-service:8070
+    ports:
+      - "8070:8070"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gateway-service
+
+  flight-service:
+    build: ./flight_service
+    image: squeakbug73/flight-service:0.1
+    restart: unless-stopped
+    container_name: flight-service
+    environment:
+      - DB_HOST=postgres
+      - LISTEN_ADDRESS=flight-service:8060
+    ports:
+      - "8060:8060"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gateway-service
+
+  bonus-service:
+    build: ./bonus_service
+    image: squeakbug73/bonus-service:0.1
+    restart: unless-stopped
+    container_name: bonus-service
+    environment:
+      - DB_HOST=postgres
+      - LISTEN_ADDRESS=bonus-service:8050
+    ports:
+      - "8050:8050"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gateway-service
+
+networks:
+  gateway-service:
+    driver: bridge
+
+  ticket-service:
+    driver: bridge
+    internal: true
+
+  flight-service:
+    driver: bridge
+    internal: true
+
+  bonus-service:
+    driver: bridge
+    internal: true
+
+  database:
+    driver: bridge
+    internal: true
+
+volumes:
+  db-data:

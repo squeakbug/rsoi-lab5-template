@@ -1,0 +1,38 @@
+[package]
+authors = ["squeakbug <squeakbug73@outlook.com>"]
+name = "bonus-service"
+version = "0.0.1"
+edition = "2021"
+license= "MIT"
+
+[dependencies]
+actix = "0.13"
+actix-cors = "0.6.4"
+actix-files = "0.6.2"
+actix-web = "4.4"
+anyhow = "1.0.51"
+r2d2 = "0.8.10"
+serde = "1.0.188"
+serde_derive = "1.0.188"
+serde_json = "1.0.105"
+actix-rt = "2.9.0"
+config = "0.13.3"
+dotenv = "0.15.0"
+env_logger = "0.10.0"
+once_cell = "1.18.0"
+actix-web-validator = "5.0.1"
+validator = { version = "0.16.1", features = ["derive"] }
+log = "0.4.20"
+thiserror = "~1.0"
+derive_more = "~0.99"
+num_cpus = "1.13.0"
+tokio = "1.32"
+tokio-timer = "0.2"
+futures = "0.3.28"
+async-trait = "0.1.73"
+uuid = { version = "^1.0", features = ["serde", "v4"] }
+chrono = { version = "0.4.31", features = ["serde"] }
+
+[dependencies.diesel]
+features = ["postgres", "r2d2", "uuid", "chrono"]
+version = "2.1.1"
