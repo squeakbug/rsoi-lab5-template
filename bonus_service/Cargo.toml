@@ -31,6 +31,7 @@ tokio-timer = "0.2"
 futures = "0.3.28"
 async-trait = "0.1.73"
 uuid = { version = "^1.0", features = ["serde", "v4"] }
+jsonwebtoken = "8.3.0"
 chrono = { version = "0.4.31", features = ["serde"] }
 
 [dependencies.diesel]

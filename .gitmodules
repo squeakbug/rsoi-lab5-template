@@ -1,0 +1,9 @@
+[submodule "test/google-github-oauth2-example"]
+	path = test/google-github-oauth2-example
+	url = https://github.com/wpcodevo/google-github-oath2-reactjs
+[submodule "test/google-github-oauth2-example-front"]
+	path = test/google-github-oauth2-example-front
+	url = https://github.com/wpcodevo/google-github-oath2-reactjs
+[submodule "test/google-github-oauth2-example-back"]
+	path = test/google-github-oauth2-example-back
+	url = https://github.com/wpcodevo/google-github-oauth2-nodejs

@@ -25,7 +25,8 @@ num_cpus = "1.13.0"
 futures = "0.3.28"
 reqwest = "0.11.12"
 async-trait = "0.1.73"
-chrono = "0.4.31"
+chrono = { version = "0.4.31", features = ["serde"] }
+jsonwebtoken = "8.3.0"
 uuid = { version = "^1.0", features = ["serde", "v4"] }
 ticket_service_api = { path = "../ticket-service-api" }
 flight_service_api = { path = "../flight-service-api" }

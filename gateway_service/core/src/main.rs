@@ -1,14 +1,16 @@
-use std::env;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use actix_web::middleware::Logger;
 use actix_web::web;
 use actix_web::App;
 use actix_web::HttpResponse;
 use actix_web::HttpServer;
+use futures::lock::Mutex;
 use log::info;
 
+use crate::endpoint::auth_controller::*;
 use crate::endpoint::gateway_controller::*;
-use crate::error::ConfigError;
 use crate::service::gateway_service_impl::GatewayServiceImpl;
 use state::AppState;
 
@@ -17,21 +19,7 @@ mod error;
 mod models;
 mod service;
 mod state;
-
-#[allow(unused)]
-fn config(name: &str) -> Result<String, ConfigError> {
-    match env::var(name) {
-        Err(_) => dotenv::var(name).map_err(|_| ConfigError {
-            message: format!("{} must be set", name),
-        }),
-        Ok(res) => Ok(res),
-    }
-}
-
-#[allow(unused)]
-fn config_default(name: &str, default: &str) -> String {
-    env::var(name).unwrap_or(dotenv::var(name).unwrap_or(default.into()))
-}
+mod config;
 
 fn service_config(cfg: &mut web::ServiceConfig) {
     cfg.service(flights_list)
@@ -40,31 +28,38 @@ fn service_config(cfg: &mut web::ServiceConfig) {
         .service(ticket_get)
         .service(ticket_delete)
         .service(get_user_bonuses)
-        .service(bonuses_status);
+        .service(bonuses_status)
+        .service(oauth_login)
+        .service(oauth_callback);
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "RUST_LOG=info");
+    }
     env_logger::init();
+
+    let config = config::Config::init().expect("Bad read config");
 
     info!("Server is starting. Hold on tight while we're getting ready.");
 
     info!("Initialising HTTP server ...");
-    let bind_host = config_default("LISTEN_ADDRESS", "0.0.0.0:8080");
 
-    info!("bind_host = {}", bind_host);
+    let listen_address = config.listen_address.clone();
+    info!("listen_address = {}", &listen_address);
+    info!("bonus_address = {}",  &config.bonus_service_address);
+    info!("flight_address = {}", &config.flight_service_address);
+    info!("ticket_address = {}", &config.ticket_service_address);
 
-    let bonus = config_default("BONUS_SERVICE_ADDRESS", "http://127.0.0.1:8050");
-    let flight = config_default("FLIGHT_SERVICE_ADDRESS", "http://127.0.0.1:8060");
-    let ticket = config_default("TICKET_SERVICE_ADDRESS", "http://127.0.0.1:8070");
-
-    info!("bonus_address = {}", bonus);
-    info!("flight_address = {}", flight);
-    info!("ticket_address = {}", ticket);
+    let token_storage = state::HashMapSyncContainer(Arc::new(Mutex::new(HashMap::new())));
 
     HttpServer::new(move || {
         let state = AppState {
-            gateway_service: Box::new(GatewayServiceImpl::new(flight.clone(), ticket.clone(), bonus.clone())),
+            gateway_service: Box::new(GatewayServiceImpl::new(config.flight_service_address.clone(),
+                config.ticket_service_address.clone(), config.bonus_service_address.clone())),
+            user_tokens: token_storage.clone(),
+            config: config.clone()
         };
 
         App::new()
@@ -73,8 +68,8 @@ async fn main() -> std::io::Result<()> {
             .route("/manage/health", web::get().to(HttpResponse::Ok))
             .service(web::scope("/api/v1").configure(service_config))
     })
-    .bind(&bind_host)
-    .unwrap_or_else(|_| panic!("Could not bind on '{}'", bind_host))
+    .bind(&listen_address)
+    .unwrap_or_else(|_| panic!("Could not bind on '{}'", &listen_address))
     .run()
     .await
 }
