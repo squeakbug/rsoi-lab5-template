@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   # See: https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
   name: {{ .Chart.Name }}
+  namespace: rsoi
   labels:
     app.kubernetes.io/name: {{ .Chart.Name }}
     app.kubernetes.io/version: "{{ .Values.service.image.version }}"
@@ -52,6 +53,46 @@ spec:
             {{ if .Values.service.ticket_service_address }}
             - name: TICKET_SERVICE_ADDRESS
               value: "{{ .Values.service.ticket_service_address }}"
+            {{ end }}
+
+            {{ if .Values.service.okta_oauth_client_secret }}
+            - name: OKTA_OAUTH_CLIENT_SECRET
+              value: "{{ .Values.service.okta_oauth_client_secret }}"
+            {{ end }}
+
+            {{ if .Values.service.okta_oauth_client_id }}
+            - name: OKTA_OAUTH_CLIENT_ID
+              value: "{{ .Values.service.okta_oauth_client_id }}"
+            {{ end }}
+
+            {{ if .Values.service.okta_oauth_domain }}
+            - name: OKTA_OAUTH_DOMAIN
+              value: "{{ .Values.service.okta_oauth_domain }}"
+            {{ end }}
+
+            {{ if .Values.service.okta_oauth_key }}
+            - name: OKTA_OAUTH_KEY
+              value: "{{ .Values.service.okta_oauth_key }}"
+            {{ end }}
+
+            {{ if .Values.service.token_rsoi_secret }}
+            - name: TOKEN_RSOI_SECRET
+              value: "{{ .Values.service.token_rsoi_secret }}"
+            {{ end }}
+
+            {{ if .Values.service.token_rsoi_expired_in }}
+            - name: TOKEN_RSOI_EXPIRED_IN
+              value: "{{ .Values.service.token_rsoi_expired_in }}"
+            {{ end }}
+
+            {{ if .Values.service.token_rsoi_max_age }}
+            - name: TOKEN_RSOI_MAX_AGE
+              value: "{{ .Values.service.token_rsoi_max_age }}"
+            {{ end }}
+
+            {{ if .Values.service.okta_oauth_redirect_url }}
+            - name: OKTA_OAUTH_REDIRECT_URL
+              value: "{{ .Values.service.okta_oauth_redirect_url }}"
             {{ end }}
           ports:
             - name: web
