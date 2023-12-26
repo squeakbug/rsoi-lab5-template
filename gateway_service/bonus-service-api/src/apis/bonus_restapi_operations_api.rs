@@ -45,6 +45,7 @@ pub enum ListBonusesError {
 }
 
 pub async fn edit_bonus(
+    token: String,
     configuration: &configuration::Configuration,
     id: i32,
     privilege_request: crate::models::PrivilegeRequest,
@@ -60,6 +61,7 @@ pub async fn edit_bonus(
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
     local_var_req_builder = local_var_req_builder.json(&privilege_request);
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -79,8 +81,8 @@ pub async fn edit_bonus(
         Err(Error::ResponseError(local_var_error))
     }
 }
-
 pub async fn create_bonus(
+    token: String,
     configuration: &configuration::Configuration,
     privilege_create_request: crate::models::PrivilegeCreateRequest,
 ) -> Result<crate::models::PrivilegeResponse, Error<EditBonusError>> {
@@ -95,6 +97,7 @@ pub async fn create_bonus(
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
     local_var_req_builder = local_var_req_builder.json(&privilege_create_request);
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -116,6 +119,7 @@ pub async fn create_bonus(
 }
 
 pub async fn get_bonus(
+    token: String,
     configuration: &configuration::Configuration,
     id: i32,
 ) -> Result<crate::models::PrivilegeResponse, Error<GetBonusError>> {
@@ -129,6 +133,7 @@ pub async fn get_bonus(
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -150,6 +155,7 @@ pub async fn get_bonus(
 }
 
 pub async fn list_bonus_history(
+    token: String,
     configuration: &configuration::Configuration,
     username: Option<&str>,
     ticket_uid: Option<&str>,
@@ -170,6 +176,7 @@ pub async fn list_bonus_history(
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -191,6 +198,7 @@ pub async fn list_bonus_history(
 }
 
 pub async fn list_bonuses(
+    token: String,
     configuration: &configuration::Configuration,
     username: Option<&str>,
 ) -> Result<Vec<crate::models::PrivilegeResponse>, Error<ListBonusesError>> {
@@ -207,6 +215,7 @@ pub async fn list_bonuses(
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;

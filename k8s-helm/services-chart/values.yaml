@@ -1,31 +1,46 @@
 bonus:
   service:
+    type: ClusterIP
     port: 8050
+    listen_address: 0.0.0.0:8050
     image:
       name: squeakbug73/bonus-service
       version: "0.1"
     database: 
       name: bonus
+      url: postgres://program:test@postgres/privileges
 flight:
   service:
+    type: ClusterIP
     port: 8060
+    listen_address: 0.0.0.0:8060
     image:
       name: squeakbug73/flight-service
       version: "0.1"
     database:
       name: flight
+      url: postgres://program:test@postgres/flights
 ticket:
   service:
+    type: ClusterIP
     port: 8070
+    listen_address: 0.0.0.0:8070
     image:
       name: squeakbug73/ticket-service
       version: "0.1"
     database: 
       name: ticket
+      url: postgres://program:test@postgres/tickets
 gateway:
   service:
+    type: NodePort
+    nodePort: 30000
     port: 8080
+    listen_address: 0.0.0.0:8080
     image:
       name: squeakbug73/gateway-service
       version: "0.1"
     isGateway: true
+    bonus_service_address: http://bonus.rsoi.svc.cluster.local:8050
+    flight_service_address: http://flight.rsoi.svc.cluster.local:8060
+    ticket_service_address: http://ticket.rsoi.svc.cluster.local:8070

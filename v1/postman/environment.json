@@ -1,39 +1,44 @@
 {
-	"id": "acc90f86-88ad-444e-924e-6f48f6ee7711",
-	"name": "[rsoi][lab5] Flight Service",
-	"values": [
-		{
-			"key": "serviceUrl",
-			"value": "",
-			"enabled": true
-		},
-		{
-			"key": "identityProviderUrl",
-			"value": "",
-			"enabled": true
-		},
-		{
-			"key": "username",
-			"value": "",
-			"enabled": true
-		},
-		{
-			"key": "password",
-			"value": "",
-			"enabled": true
-		},
-		{
-			"key": "clientId",
-			"value": "",
-			"enabled": true
-		},
-		{
-			"key": "clientSecret",
-			"value": "",
-			"enabled": true
-		}
-	],
-	"_postman_variable_scope": "environment",
-	"_postman_exported_at": "2021-10-15T18:17:23.977Z",
-	"_postman_exported_using": "Postman/9.0.5"
+  "_": {
+    "postman_variable_scope": "environment",
+    "postman_exported_at": "2023-12-26T02:40:46.015Z",
+    "postman_exported_using": "Newman/6.0.0"
+  },
+  "id": "acc90f86-88ad-444e-924e-6f48f6ee7711",
+  "name": "[rsoi][lab5] Flight Service",
+  "values": [
+    {
+      "type": "any",
+      "value": "http://localhost:8080",
+      "key": "serviceUrl"
+    },
+    {
+      "type": "any",
+      "value": "https://dev-kov7bvsyqbonazwt.us.auth0.com",
+      "key": "identityProviderUrl"
+    },
+    {
+      "type": "any",
+      "value": "squeakbug73@outlook.com",
+      "key": "username"
+    },
+    {
+      "type": "any",
+      "value": "Uxli2069Inux3129",
+      "key": "password"
+    },
+    {
+      "type": "any",
+      "value": "28Fj9VV4t0gVNeLDdwWdamxeCXtpB4Ac",
+      "key": "clientId"
+    },
+    {
+      "type": "any",
+      "value": "bEJraief086rVImrW83RuHqJXDZMGLGYgUh-WTr63zyN8kff5Fs1DF1E6-jID3O2",
+      "key": "clientSecret"
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2023-12-26T02:42:40.593Z",
+  "_postman_exported_using": "Newman/6.0.0"
 }

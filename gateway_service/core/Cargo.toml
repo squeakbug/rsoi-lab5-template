@@ -27,6 +27,7 @@ reqwest = "0.11.12"
 async-trait = "0.1.73"
 chrono = { version = "0.4.31", features = ["serde"] }
 jsonwebtoken = "8.3.0"
+bytes = "1.5.0"
 uuid = { version = "^1.0", features = ["serde", "v4"] }
 ticket_service_api = { path = "../ticket-service-api" }
 flight_service_api = { path = "../flight-service-api" }

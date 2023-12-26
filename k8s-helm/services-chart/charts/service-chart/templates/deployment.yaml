@@ -25,23 +25,34 @@ spec:
         app.kubernetes.io/managed-by: helm
     spec:
       containers:
-        - name: {{ .Chart.Name}}
+        - name: {{ .Chart.Name }}
           imagePullPolicy: Always
           image: {{ .Values.service.image.name }}:{{ .Values.service.image.version }}
-          
           env:
-            {{ if .Values.service.database.name }}
-            - name: DATABASE
-              value: "{{ .Values.service.database.name }}"
-            {{- end }}
-            - name: DB_HOST
-              value: "{{ .Values.service.database.host }}"
-            - name: DB_PORT
-              value: "{{ .Values.service.database.port }}"
-            - name: USERNAME
-              value: "{{ .Values.service.database.username }}"
-            - name: PASSWORD
-              value: "{{ .Values.service.database.password }}"
+            {{ if .Values.service.database.url }}
+            - name: DATABASE_URL
+              value: "{{ .Values.service.database.url }}"
+            {{ end }}
+
+            {{ if .Values.service.listen_address }}
+            - name: LISTEN_ADDRESS
+              value: "{{ .Values.service.listen_address }}"
+            {{ end }}
+
+            {{ if .Values.service.bonus_service_address }}
+            - name: BONUS_SERVICE_ADDRESS
+              value: "{{ .Values.service.bonus_service_address }}"
+            {{ end }}
+
+            {{ if .Values.service.flight_service_address }}
+            - name: FLIGHT_SERVICE_ADDRESS
+              value: "{{ .Values.service.flight_service_address }}"
+            {{ end }}
+
+            {{ if .Values.service.ticket_service_address }}
+            - name: TICKET_SERVICE_ADDRESS
+              value: "{{ .Values.service.ticket_service_address }}"
+            {{ end }}
           ports:
             - name: web
               containerPort: {{ .Values.service.port }}

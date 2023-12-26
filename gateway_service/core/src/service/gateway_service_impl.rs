@@ -27,19 +27,24 @@ impl GatewayServiceImpl {
         }
     }
 
-    pub async fn get_full_tickets(&self, username: String) -> Result<Vec<models::TicketResponse>> {
-        let futures = self.get_tickets(username).await?.into_iter().map(|ticket| async move {
-            let flight = self.get_flight(ticket.flight_number).await.unwrap();
-            models::TicketResponse {
-                date: flight.date,
-                flight_number: flight.flight_number,
-                from_airport: flight.from_airport,
-                to_airport: flight.to_airport,
-                price: flight.price,
-                status: Some(ticket.status),
-                ticket_uid: Some(ticket.ticket_uid),
-            }
-        });
+    pub async fn get_full_tickets(&self, token: String, username: String) -> Result<Vec<models::TicketResponse>> {
+        let my_token: &String = &token;
+        let futures = self
+            .get_tickets(my_token.clone(), username)
+            .await?
+            .into_iter()
+            .map(|ticket| async move {
+                let flight = self.get_flight(my_token.clone(), ticket.flight_number).await.unwrap();
+                models::TicketResponse {
+                    date: flight.date,
+                    flight_number: flight.flight_number,
+                    from_airport: flight.from_airport,
+                    to_airport: flight.to_airport,
+                    price: flight.price,
+                    status: Some(ticket.status),
+                    ticket_uid: Some(ticket.ticket_uid),
+                }
+            });
 
         let mut result = vec![];
         for f in futures {
@@ -49,7 +54,11 @@ impl GatewayServiceImpl {
         Ok(result)
     }
 
-    pub async fn create_privilege(&self, input: models::PrivilegeCreateRequest) -> Result<models::PrivilegeResponse> {
+    pub async fn create_privilege(
+        &self,
+        token: String,
+        input: models::PrivilegeCreateRequest,
+    ) -> Result<models::PrivilegeResponse> {
         use bonus_service_api::apis as bapis;
         use bonus_service_api::models as bmodels;
 
@@ -63,7 +72,7 @@ impl GatewayServiceImpl {
             status: input.status,
             username: input.username,
         };
-        let privilege_resp = bapis::bonus_restapi_operations_api::create_bonus(&bonus_conf, privilege_req)
+        let privilege_resp = bapis::bonus_restapi_operations_api::create_bonus(token, &bonus_conf, privilege_req)
             .await
             .map_err(|_| ServiceError::BadClientData)?;
 
@@ -77,7 +86,7 @@ impl GatewayServiceImpl {
         Ok(result)
     }
 
-    pub async fn get_privilege(&self, username: String) -> Result<models::PrivilegeResponse> {
+    pub async fn get_privilege(&self, token: String, username: String) -> Result<models::PrivilegeResponse> {
         use bonus_service_api::apis as bapis;
 
         let bonus_conf = bapis::configuration::Configuration {
@@ -85,7 +94,7 @@ impl GatewayServiceImpl {
             client: self.client.clone(),
             ..Default::default()
         };
-        let user_bonuses = bapis::bonus_restapi_operations_api::list_bonuses(&bonus_conf, Some(&username))
+        let user_bonuses = bapis::bonus_restapi_operations_api::list_bonuses(token, &bonus_conf, Some(&username))
             .await
             .map_err(|_| ServiceError::BadClientData)?;
 
@@ -107,7 +116,7 @@ impl GatewayServiceImpl {
         Ok(result)
     }
 
-    pub async fn get_user_history(&self, username: String) -> Result<Vec<models::BalanceHistory>> {
+    pub async fn get_user_history(&self, token: String, username: String) -> Result<Vec<models::BalanceHistory>> {
         use bonus_service_api::apis as bapis;
 
         let bonus_conf = bapis::configuration::Configuration {
@@ -115,9 +124,10 @@ impl GatewayServiceImpl {
             client: self.client.clone(),
             ..Default::default()
         };
-        let response = bapis::bonus_restapi_operations_api::list_bonus_history(&bonus_conf, Some(&username), None)
-            .await
-            .map_err(|_| ServiceError::BadClientData)?;
+        let response =
+            bapis::bonus_restapi_operations_api::list_bonus_history(token, &bonus_conf, Some(&username), None)
+                .await
+                .map_err(|_| ServiceError::BadClientData)?;
 
         let result = response
             .into_iter()
@@ -132,7 +142,11 @@ impl GatewayServiceImpl {
         Ok(result)
     }
 
-    pub async fn get_ticket_history(&self, ticket_uid: uuid::Uuid) -> Result<Vec<models::BalanceHistory>> {
+    pub async fn get_ticket_history(
+        &self,
+        token: String,
+        ticket_uid: uuid::Uuid,
+    ) -> Result<Vec<models::BalanceHistory>> {
         use bonus_service_api::apis as bapis;
 
         let bonus_conf = bapis::configuration::Configuration {
@@ -140,10 +154,14 @@ impl GatewayServiceImpl {
             client: self.client.clone(),
             ..Default::default()
         };
-        let response =
-            bapis::bonus_restapi_operations_api::list_bonus_history(&bonus_conf, None, Some(&ticket_uid.to_string()))
-                .await
-                .map_err(|_| ServiceError::BadClientData)?;
+        let response = bapis::bonus_restapi_operations_api::list_bonus_history(
+            token,
+            &bonus_conf,
+            None,
+            Some(&ticket_uid.to_string()),
+        )
+        .await
+        .map_err(|_| ServiceError::BadClientData)?;
 
         let result = response
             .into_iter()
@@ -160,6 +178,7 @@ impl GatewayServiceImpl {
 
     pub async fn update_privilege(
         &self,
+        token: String,
         privilege_id: i32,
         request: models::PrivilegeRequest,
     ) -> Result<models::PrivilegeShortInfo> {
@@ -177,7 +196,7 @@ impl GatewayServiceImpl {
             operation_type: request.operation,
         };
 
-        let response = bapis::bonus_restapi_operations_api::edit_bonus(&bonus_conf, privilege_id, privelege_req)
+        let response = bapis::bonus_restapi_operations_api::edit_bonus(token, &bonus_conf, privilege_id, privelege_req)
             .await
             .unwrap();
 
@@ -189,7 +208,7 @@ impl GatewayServiceImpl {
         Ok(result)
     }
 
-    pub async fn get_tickets(&self, username: String) -> Result<Vec<models::TicketInfo>> {
+    pub async fn get_tickets(&self, token: String, username: String) -> Result<Vec<models::TicketInfo>> {
         use ticket_service_api::apis as tapis;
 
         let ticket_conf = tapis::configuration::Configuration {
@@ -197,7 +216,7 @@ impl GatewayServiceImpl {
             client: self.client.clone(),
             ..Default::default()
         };
-        let tickets = tapis::ticket_restapi_operations_api::list_tickets(&ticket_conf, Some(&username), None)
+        let tickets = tapis::ticket_restapi_operations_api::list_tickets(token, &ticket_conf, Some(&username), None)
             .await
             .map_err(|_| ServiceError::BadClientData)?
             .into_iter()
@@ -214,7 +233,7 @@ impl GatewayServiceImpl {
         Ok(tickets)
     }
 
-    pub async fn get_ticket(&self, ticket_uid: uuid::Uuid) -> Result<models::TicketInfo> {
+    pub async fn get_ticket(&self, token: String, ticket_uid: uuid::Uuid) -> Result<models::TicketInfo> {
         use ticket_service_api::apis as tapis;
 
         let ticket_conf = tapis::configuration::Configuration {
@@ -222,7 +241,7 @@ impl GatewayServiceImpl {
             client: self.client.clone(),
             ..Default::default()
         };
-        tapis::ticket_restapi_operations_api::get_ticket(&ticket_conf, &ticket_uid.to_string())
+        tapis::ticket_restapi_operations_api::get_ticket(token, &ticket_conf, &ticket_uid.to_string())
             .await
             .map_err(|_| ServiceError::NotFoundError)
             .map(|ticket| models::TicketInfo {
@@ -235,7 +254,7 @@ impl GatewayServiceImpl {
             })
     }
 
-    pub async fn create_ticket(&self, input: models::TicketRequest) -> Result<()> {
+    pub async fn create_ticket(&self, token: String, input: models::TicketRequest) -> Result<()> {
         use ticket_service_api::apis as tapis;
         use ticket_service_api::models as tmodels;
 
@@ -251,12 +270,12 @@ impl GatewayServiceImpl {
             username: input.username,
             status: input.status,
         };
-        tapis::ticket_restapi_operations_api::create_ticket(&ticket_conf, ticket_req)
+        tapis::ticket_restapi_operations_api::create_ticket(token, &ticket_conf, ticket_req)
             .await
             .map_err(|_| ServiceError::NotFoundError)
     }
 
-    pub async fn get_flight(&self, flight_number: String) -> Result<models::FlightResponse> {
+    pub async fn get_flight(&self, token: String, flight_number: String) -> Result<models::FlightResponse> {
         use flight_service_api::apis as fapis;
 
         let flight_conf = fapis::configuration::Configuration {
@@ -265,7 +284,7 @@ impl GatewayServiceImpl {
             ..Default::default()
         };
         let flight_resp =
-            fapis::flight_restapi_operations_api::list_flights(&flight_conf, None, None, Some(&flight_number))
+            fapis::flight_restapi_operations_api::list_flights(token, &flight_conf, None, None, Some(&flight_number))
                 .await
                 .map_err(|_| ServiceError::NotFoundError)?
                 .items;
@@ -286,7 +305,7 @@ impl GatewayServiceImpl {
         Ok(result)
     }
 
-    pub async fn delete_ticket(&self, ticket_uid: uuid::Uuid) -> Result<()> {
+    pub async fn delete_ticket(&self, token: String, ticket_uid: uuid::Uuid) -> Result<()> {
         use ticket_service_api::apis as tapis;
 
         let ticket_conf = tapis::configuration::Configuration {
@@ -294,7 +313,7 @@ impl GatewayServiceImpl {
             client: self.client.clone(),
             ..Default::default()
         };
-        tapis::ticket_restapi_operations_api::edit_ticket1(&ticket_conf, &ticket_uid.to_string())
+        tapis::ticket_restapi_operations_api::edit_ticket1(token, &ticket_conf, &ticket_uid.to_string())
             .await
             .map_err(|_| ServiceError::NotFoundError)
     }
@@ -302,7 +321,12 @@ impl GatewayServiceImpl {
 
 #[async_trait]
 impl GatewayService for GatewayServiceImpl {
-    async fn get_flights(&self, page: Option<i32>, size: Option<i32>) -> Result<models::PaginationResponse> {
+    async fn get_flights(
+        &self,
+        token: String,
+        page: Option<i32>,
+        size: Option<i32>,
+    ) -> Result<models::PaginationResponse> {
         use flight_service_api::apis as fapis;
 
         let flight_conf = fapis::configuration::Configuration {
@@ -310,7 +334,7 @@ impl GatewayService for GatewayServiceImpl {
             client: self.client.clone(),
             ..Default::default()
         };
-        fapis::flight_restapi_operations_api::list_flights(&flight_conf, page, size, None)
+        fapis::flight_restapi_operations_api::list_flights(token, &flight_conf, page, size, None)
             .await
             .map_err(|_| ServiceError::BadClientData)
             .map(|flights| models::PaginationResponse {
@@ -334,7 +358,11 @@ impl GatewayService for GatewayServiceImpl {
             })
     }
 
-    async fn get_privilege_with_history(&self, username: String) -> Result<models::PrivilegeInfoResponse> {
+    async fn get_privilege_with_history(
+        &self,
+        token: String,
+        username: String,
+    ) -> Result<models::PrivilegeInfoResponse> {
         use bonus_service_api::apis as bapis;
 
         let bonus_conf = bapis::configuration::Configuration {
@@ -342,9 +370,10 @@ impl GatewayService for GatewayServiceImpl {
             client: self.client.clone(),
             ..Default::default()
         };
-        let privilege_resp_future = bapis::bonus_restapi_operations_api::list_bonuses(&bonus_conf, Some(&username));
+        let privilege_resp_future =
+            bapis::bonus_restapi_operations_api::list_bonuses(token.clone(), &bonus_conf, Some(&username));
 
-        let user_history_future = self.get_user_history(username.clone());
+        let user_history_future = self.get_user_history(token, username.clone());
 
         let privilege_resp = privilege_resp_future.await.map_err(|_| ServiceError::BadClientData)?;
 
@@ -367,9 +396,9 @@ impl GatewayService for GatewayServiceImpl {
         Ok(result)
     }
 
-    async fn get_user_info(&self, username: String) -> Result<models::UserInfoResponse> {
-        let tickets_future = self.get_full_tickets(username.clone());
-        let privilege_future = self.get_privilege(username.clone());
+    async fn get_user_info(&self, token: String, username: String) -> Result<models::UserInfoResponse> {
+        let tickets_future = self.get_full_tickets(token.clone(), username.clone());
+        let privilege_future = self.get_privilege(token, username.clone());
 
         let tickets = tickets_future.await?;
         let privilege = privilege_future.await?;
@@ -384,15 +413,20 @@ impl GatewayService for GatewayServiceImpl {
         Ok(result)
     }
 
-    async fn get_user_tickets(&self, username: String) -> Result<Vec<models::TicketResponse>> {
-        self.get_full_tickets(username).await
+    async fn get_user_tickets(&self, token: String, username: String) -> Result<Vec<models::TicketResponse>> {
+        self.get_full_tickets(token, username).await
     }
 
-    async fn get_ticket_by_uid(&self, _: String, ticket_uid: uuid::Uuid) -> Result<models::TicketResponse> {
-        let ticket_info = self.get_ticket(ticket_uid).await?;
+    async fn get_ticket_by_uid(
+        &self,
+        token: String,
+        _: String,
+        ticket_uid: uuid::Uuid,
+    ) -> Result<models::TicketResponse> {
+        let ticket_info = self.get_ticket(token.clone(), ticket_uid).await?;
 
         let flight_number = ticket_info.flight_number;
-        let flight_response = self.get_flight(flight_number.clone()).await?;
+        let flight_response = self.get_flight(token, flight_number.clone()).await?;
         let result = models::TicketResponse {
             date: flight_response.date,
             ticket_uid: Some(ticket_uid),
@@ -407,20 +441,21 @@ impl GatewayService for GatewayServiceImpl {
 
     async fn buy_ticket(
         &self,
+        token: String,
         username: String,
         ticket_req: models::TicketPurchaseRequest,
     ) -> Result<models::TicketPurchaseResponse> {
         let flight_number = ticket_req.flight_number.unwrap();
-        let flight_future = self.get_flight(flight_number.clone());
+        let flight_future = self.get_flight(token.clone(), flight_number.clone());
 
-        let privilege_resp = match self.get_privilege(username.clone()).await {
+        let privilege_resp = match self.get_privilege(token.clone(), username.clone()).await {
             Err(ServiceError::NotFoundError) => {
                 let req = models::PrivilegeCreateRequest {
                     balance: 0,
                     username: username.clone(),
                     status: String::from("BRONZE"),
                 };
-                self.create_privilege(req).await
+                self.create_privilege(token.clone(), req).await
             }
             Err(err) => Err(err),
             Ok(resp) => Ok(resp),
@@ -458,7 +493,7 @@ impl GatewayService for GatewayServiceImpl {
             username: username.clone(),
             operation,
         };
-        let privilege_resp_future = self.update_privilege(privilege_resp.id, privilege_req);
+        let privilege_resp_future = self.update_privilege(token.clone(), privilege_resp.id, privilege_req);
 
         let ticket_service_req = models::TicketRequest {
             flight_number: flight_number.clone(),
@@ -467,7 +502,7 @@ impl GatewayService for GatewayServiceImpl {
             username,
             status: String::from("PAID"),
         };
-        self.create_ticket(ticket_service_req).await?;
+        self.create_ticket(token, ticket_service_req).await?;
 
         let privilege_resp = privilege_resp_future.await?;
         let flight = flight_future.await?;
@@ -487,12 +522,12 @@ impl GatewayService for GatewayServiceImpl {
         Ok(result)
     }
 
-    async fn return_ticket(&self, username: String, ticket_uid: uuid::Uuid) -> Result<()> {
+    async fn return_ticket(&self, token: String, username: String, ticket_uid: uuid::Uuid) -> Result<()> {
         // Проверка, есть ли билет у пользователя
-        let _ = self.get_ticket(ticket_uid).await?;
+        let _ = self.get_ticket(token.clone(), ticket_uid).await?;
 
-        let ticket_history_future = self.get_ticket_history(ticket_uid);
-        let privilege_future = self.get_privilege(username.clone());
+        let ticket_history_future = self.get_ticket_history(token.clone(), ticket_uid);
+        let privilege_future = self.get_privilege(token.clone(), username.clone());
 
         let ticket_history = ticket_history_future.await?;
         let last_history_entry = match ticket_history.last() {
@@ -532,8 +567,8 @@ impl GatewayService for GatewayServiceImpl {
             ticket_uid,
             operation: operation_to_return,
         };
-        let update_privilege_future = self.update_privilege(privilege_id, privilege_req);
-        let delete_ticket_future = self.delete_ticket(ticket_uid);
+        let update_privilege_future = self.update_privilege(token.clone(), privilege_id, privilege_req);
+        let delete_ticket_future = self.delete_ticket(token, ticket_uid);
         update_privilege_future.await?;
         delete_ticket_future.await
     }

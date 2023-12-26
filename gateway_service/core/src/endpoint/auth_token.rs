@@ -1,19 +1,19 @@
 use std::pin::Pin;
 
-use futures::Future;
 use actix_web::{
     dev::Payload,
     error::{Error as ActixWebError, ErrorUnauthorized},
     http, web, FromRequest, HttpRequest,
 };
-use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use futures::Future;
 use serde_json::json;
 
+use crate::endpoint::auth_controller::{get_okta_user, validate_token};
 use crate::state::AppState;
-use super::auth_controller::TokenClaims;
 
 pub struct AuthenticationGuard {
-    pub user_id: String,
+    pub nickname: String,
+    pub access_token: String,
 }
 
 impl FromRequest for AuthenticationGuard {
@@ -21,46 +21,32 @@ impl FromRequest for AuthenticationGuard {
     type Future = Pin<Box<dyn Future<Output = Result<Self, Self::Error>>>>;
 
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
-        let token = req
-            .cookie("token")
-            .map(|c| c.value().to_string())
-            .or_else(|| {
-                req.headers()
-                    .get(http::header::AUTHORIZATION)
-                    .map(|h| h.to_str().unwrap().split_at(7).1.to_string())
-            });
+        let access_token = req.cookie("token").map(|c| c.value().to_string()).or_else(|| {
+            req.headers()
+                .get(http::header::AUTHORIZATION)
+                .map(|h| h.to_str().unwrap().split_at(7).1.to_string())
+        });
 
-        if token.is_none() {
+        if access_token.is_none() {
             return Box::pin(async move {
                 Err(ErrorUnauthorized(
-                json!({"status": "fail", "message": "You are not logged in, please provide token"}),
-            ))});
+                    json!({"status": "fail", "message": "You are not logged in, please provide token"}),
+                ))
+            });
         }
 
         let data = req.app_data::<web::Data<AppState>>().unwrap().clone();
 
-        let jwt_secret = data.config.jwt_secret.to_owned();
-        let decode = decode::<TokenClaims>(
-            token.unwrap().as_str(),
-            &DecodingKey::from_secret(jwt_secret.as_ref()),
-            &Validation:: new(Algorithm::HS256),
-        );
-
         Box::pin(async move {
-            let db = data.user_tokens.0.lock().await;
+            let decode = validate_token(access_token.clone().unwrap().as_ref(), &data.config.okta_oauth_domain).await;
             match decode {
-                Ok(token) => {
-                    let user = db.get(&token.claims.sub);
-
-                    if user.is_none() {
-                        Err(ErrorUnauthorized(
-                            json!({"status": "fail", "message": "User belonging to this token no logger exists"}),
-                        ))
-                    } else {
-                        Ok(AuthenticationGuard {
-                            user_id: token.claims.sub.clone(),
-                        })
-                    }
+                Ok(_) => {
+                    let _google_user =
+                        get_okta_user(&access_token.clone().unwrap(), &data.config.okta_oauth_domain).await;
+                    Ok(AuthenticationGuard {
+                        nickname: _google_user.nickname.clone(),
+                        access_token: access_token.clone().unwrap(),
+                    })
                 }
 
                 Err(_) => Err(ErrorUnauthorized(
@@ -74,7 +60,7 @@ impl FromRequest for AuthenticationGuard {
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use jsonwebtoken::{decode, EncodingKey, Header, DecodingKey, Validation, Algorithm};
+    use jsonwebtoken::{decode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 
     use crate::endpoint::auth_controller::TokenClaims;
 
@@ -90,7 +76,7 @@ mod tests {
             exp,
             iat,
         };
-        
+
         let token = jsonwebtoken::encode(
             &Header::default(),
             &claims,
@@ -103,7 +89,7 @@ mod tests {
         let decode = decode::<TokenClaims>(
             token.as_str(),
             &DecodingKey::from_secret(jwt_secret.as_ref()),
-            &Validation:: new(Algorithm::HS256),
+            &Validation::new(Algorithm::HS256),
         );
 
         let decoded_claims = decode.unwrap().claims;

@@ -4,6 +4,7 @@ use actix_web_validator::Path;
 use serde::Deserialize;
 use validator::Validate;
 
+use crate::app::api::auth_token::AuthenticationGuard;
 use crate::app::api::error_controller::*;
 use crate::app::api::state::AppState;
 use crate::app::models;
@@ -15,10 +16,15 @@ pub struct PrivilegeQuery {
 }
 
 #[get("/privilege")]
-pub async fn list(state: Data<AppState>, query: web::Query<PrivilegeQuery>) -> Result<impl Responder, ErrorResponse> {
+pub async fn list(
+    state: Data<AppState>,
+    auth_guard: AuthenticationGuard,
+    _: web::Query<PrivilegeQuery>,
+) -> Result<impl Responder, ErrorResponse> {
+    let username = auth_guard.nickname;
     state
         .privilege_service
-        .get_privileges(query.username.clone())
+        .get_privileges(Some(username.clone()))
         .await
         .map_err(ErrorResponse::map_io_error)
         .map(|privileges| HttpResponse::Ok().json(privileges))
@@ -30,7 +36,11 @@ pub struct PrivilegePath {
 }
 
 #[get("/privilege/{id}")]
-pub async fn get_id(state: Data<AppState>, path: Path<PrivilegePath>) -> Result<impl Responder, ErrorResponse> {
+pub async fn get_id(
+    state: Data<AppState>,
+    _: AuthenticationGuard,
+    path: Path<PrivilegePath>,
+) -> Result<impl Responder, ErrorResponse> {
     let id = path.id;
     state
         .privilege_service
@@ -43,6 +53,7 @@ pub async fn get_id(state: Data<AppState>, path: Path<PrivilegePath>) -> Result<
 #[patch("/privilege/{id}")]
 pub async fn patch_id(
     state: Data<AppState>,
+    _: AuthenticationGuard,
     path: Path<PrivilegePath>,
     privilege: web::Json<models::PrivilegeRequest>,
 ) -> Result<impl Responder, ErrorResponse> {
@@ -65,11 +76,13 @@ pub struct PrivilegeHistoryQuery {
 #[get("/privilege_history")]
 pub async fn list_privilege_history(
     state: Data<AppState>,
+    auth_guard: AuthenticationGuard,
     query: web::Query<PrivilegeHistoryQuery>,
 ) -> Result<impl Responder, ErrorResponse> {
+    let username = auth_guard.nickname;
     state
         .privilege_service
-        .get_privilege_history(query.username.clone(), query.ticket_uid)
+        .get_privilege_history(Some(username.clone()), query.ticket_uid)
         .await
         .map_err(ErrorResponse::map_io_error)
         .map(|privilege| HttpResponse::Ok().json(privilege))

@@ -22,6 +22,7 @@ pub enum GetFlightError {
 }
 
 pub async fn get_flight(
+    token: String,
     configuration: &configuration::Configuration,
     id: i32,
 ) -> Result<crate::models::FlightResponse, Error<GetFlightError>> {
@@ -35,6 +36,7 @@ pub async fn get_flight(
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;

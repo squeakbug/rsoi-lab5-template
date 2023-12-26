@@ -14,12 +14,12 @@ use crate::endpoint::gateway_controller::*;
 use crate::service::gateway_service_impl::GatewayServiceImpl;
 use state::AppState;
 
+mod config;
 mod endpoint;
 mod error;
 mod models;
 mod service;
 mod state;
-mod config;
 
 fn service_config(cfg: &mut web::ServiceConfig) {
     cfg.service(flights_list)
@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()> {
 
     let listen_address = config.listen_address.clone();
     info!("listen_address = {}", &listen_address);
-    info!("bonus_address = {}",  &config.bonus_service_address);
+    info!("bonus_address = {}", &config.bonus_service_address);
     info!("flight_address = {}", &config.flight_service_address);
     info!("ticket_address = {}", &config.ticket_service_address);
 
@@ -56,10 +56,13 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         let state = AppState {
-            gateway_service: Box::new(GatewayServiceImpl::new(config.flight_service_address.clone(),
-                config.ticket_service_address.clone(), config.bonus_service_address.clone())),
+            gateway_service: Box::new(GatewayServiceImpl::new(
+                config.flight_service_address.clone(),
+                config.ticket_service_address.clone(),
+                config.bonus_service_address.clone(),
+            )),
             user_tokens: token_storage.clone(),
-            config: config.clone()
+            config: config.clone(),
         };
 
         App::new()

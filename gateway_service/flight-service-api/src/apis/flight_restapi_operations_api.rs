@@ -21,6 +21,7 @@ pub enum ListFlightsError {
 }
 
 pub async fn list_flights(
+    token: String,
     configuration: &configuration::Configuration,
     page: Option<i32>,
     size: Option<i32>,
@@ -45,6 +46,7 @@ pub async fn list_flights(
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;

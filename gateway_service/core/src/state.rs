@@ -1,11 +1,11 @@
-use std::{boxed::Box, collections::HashMap, sync::Arc};
 use chrono::prelude::*;
 use chrono::serde::ts_seconds_option;
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
+use std::{boxed::Box, collections::HashMap, sync::Arc};
 
 use futures::lock::Mutex;
 
-use crate::{service::gateway_service::GatewayService, config::Config};
+use crate::{config::Config, service::gateway_service::GatewayService};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct User {

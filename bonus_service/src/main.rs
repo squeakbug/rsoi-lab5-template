@@ -1,5 +1,3 @@
-use std::env;
-
 use actix::sync::SyncArbiter;
 use actix::Addr;
 use actix_web::middleware::Logger;
@@ -17,22 +15,9 @@ use crate::app::repository::database_executor::DatabaseExecutor;
 use crate::app::repository::privilege_repository::*;
 
 pub mod app;
+pub mod config;
+pub mod error;
 pub mod schema;
-
-#[allow(unused)]
-fn config(name: &str) -> Result<String, ConfigError> {
-    match env::var(name) {
-        Err(_) => dotenv::var(name).map_err(|_| ConfigError {
-            message: format!("{} must be set", name),
-        }),
-        Ok(res) => Ok(res),
-    }
-}
-
-#[allow(unused)]
-fn config_default(name: &str, default: &str) -> String {
-    env::var(name).unwrap_or(dotenv::var(name).unwrap_or(default.into()))
-}
 
 fn service_config(cfg: &mut web::ServiceConfig) {
     cfg.service(privilege_controller::list)
@@ -41,9 +26,9 @@ fn service_config(cfg: &mut web::ServiceConfig) {
         .service(privilege_controller::list_privilege_history);
 }
 
-fn start_db_executor() -> Result<Addr<DatabaseExecutor>, ConfigError> {
+fn start_db_executor(cfg: &config::Config) -> Result<Addr<DatabaseExecutor>, ConfigError> {
     info!("Initialising database connection pool ...");
-    let db_url = config("DATABASE_URL")?;
+    let db_url = cfg.database_url.clone();
 
     let manager = ConnectionManager::<PgConnection>::new(db_url);
     let pool = Pool::builder().build(manager).map_err(|_| ConfigError {
@@ -55,24 +40,28 @@ fn start_db_executor() -> Result<Addr<DatabaseExecutor>, ConfigError> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "RUST_LOG=info");
+    }
     env_logger::init();
+
+    let cfg = config::Config::init().expect("Bad read config");
 
     info!("Server is starting. Hold on tight while we're getting ready.");
 
-    let db_addr = start_db_executor().unwrap();
+    let listen_address = cfg.listen_address.clone();
+    info!("listen_address = {}", &listen_address);
+
+    let db_addr = start_db_executor(&cfg).unwrap();
     let privilege_repository = PrivilegeRepositoryImpl { db_addr };
     let privilege_service = PrivilegeServiceImpl {
         privilege_repository: Box::new(privilege_repository),
     };
 
-    info!("Initialising HTTP server ...");
-    let bind_host = config_default("LISTEN_ADDRESS", "127.0.0.1:8050");
-
-    info!("bind_host = {}", bind_host);
-
     HttpServer::new(move || {
         let state = AppState {
             privilege_service: Box::new(privilege_service.clone()),
+            config: cfg.clone(),
         };
 
         App::new()
@@ -81,8 +70,8 @@ async fn main() -> std::io::Result<()> {
             .route("/manage/health", web::get().to(HttpResponse::Ok))
             .service(web::scope("/api/v1").configure(service_config))
     })
-    .bind(&bind_host)
-    .unwrap_or_else(|_| panic!("Could not bind on '{}'", bind_host))
+    .bind(&listen_address)
+    .unwrap_or_else(|_| panic!("Could not bind on '{}'", &listen_address))
     .run()
     .await
 }

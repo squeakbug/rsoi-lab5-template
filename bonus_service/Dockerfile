@@ -18,6 +18,8 @@ FROM debian:bullseye-slim
 
 RUN apt-get update && \
     apt-get install libpq5 -y && \
+    apt-get install ca-certificates -y && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=rust-build /root/bonus-service /

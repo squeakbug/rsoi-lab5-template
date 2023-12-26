@@ -1,10 +1,11 @@
 use actix_web::cookie::Cookie;
 use actix_web::web::Data;
-use actix_web::{get, web, HttpResponse, Responder, Result};
-use jsonwebtoken::{Header, EncodingKey};
-use reqwest::{Client, Url};
+use actix_web::{get, post, web, HttpResponse, Responder, Result};
 use chrono::prelude::*;
-use serde::{Serialize, Deserialize};
+use jsonwebtoken::errors::Error;
+use jsonwebtoken::{decode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use reqwest::{Client, Url};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::endpoint::error_controller::ErrorResponse;
@@ -27,18 +28,7 @@ struct OktaResponseParams {
 }
 
 #[derive(Serialize)]
-struct TokenRequestAuthorizeCode<'a>
-{
-    code: &'a str,
-    grant_type: &'a str,
-    redirect_uri: &'a str,
-    client_id: &'a str,
-    client_secret: &'a str,
-}
-
-#[derive(Serialize)]
-struct TokenRequestPassword<'a>
-{
+struct TokenRequestAuthorizeCode<'a> {
     code: &'a str,
     grant_type: &'a str,
     redirect_uri: &'a str,
@@ -48,24 +38,33 @@ struct TokenRequestPassword<'a>
     password: &'a str,
 }
 
+#[derive(Serialize, Deserialize)]
+struct TokenRequestPassword {
+    scope: String,
+    grant_type: String,
+    username: String,
+    password: String,
+    client_id: String,
+    client_secret: String,
+    audience: String,
+}
+
 #[derive(Deserialize, Debug)]
-struct TokenResponsePassword
-{
+struct TokenResponsePassword {
     access_token: String,
-    id_token: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
-    aud: String,         // Optional. Audience
-    exp: usize,          // Required (validate_exp defaults to true in validation). Expiration time (as UTC timestamp)
-    iat: usize,          // Optional. Issued at (as UTC timestamp)
-    iss: String,         // Optional. Issuer
-    nbf: usize,          // Optional. Not Before (as UTC timestamp)
-    sub: String,         // Optional. Subject (whom token refers to)
+    aud: String, // Optional. Audience
+    exp: usize,  // Required (validate_exp defaults to true in validation). Expiration time (as UTC timestamp)
+    iat: usize,  // Optional. Issued at (as UTC timestamp)
+    iss: String, // Optional. Issuer
+    nbf: usize,  // Optional. Not Before (as UTC timestamp)
+    sub: String, // Optional. Subject (whom token refers to)
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Debug)]
 pub struct OktaUserResult {
     pub sub: String,
     pub nickname: String,
@@ -73,7 +72,7 @@ pub struct OktaUserResult {
     pub picture: String,
     pub updated_at: String,
     pub email: String,
-    pub email_verified: bool
+    pub email_verified: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,12 +88,20 @@ pub async fn get_okta_user(access_token: &str, domain_string: &str) -> OktaUserR
     let local_var_uri_str = format!("https://{0}/v1/userinfo", domain_string);
     let uri_str = Url::parse(&local_var_uri_str).expect("Bad url");
 
-    let response = client.get(uri_str).bearer_auth(access_token).send().await.expect("Bad send request");
+    let response = client
+        .get(uri_str)
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .expect("Bad send request");
     response.json::<OktaUserResult>().await.expect("Bad desirealization")
 }
 
 #[get("/callback")]
-pub async fn oauth_callback(data: Data<AppState>, query: web::Query<OktaResponseParams>) -> Result<impl Responder, ErrorResponse> {
+pub async fn oauth_callback(
+    data: Data<AppState>,
+    query: web::Query<OktaResponseParams>,
+) -> Result<impl Responder, ErrorResponse> {
     let local_var_client = Client::new();
 
     let domain_string = &data.config.okta_oauth_domain;
@@ -109,7 +116,7 @@ pub async fn oauth_callback(data: Data<AppState>, query: web::Query<OktaResponse
     let password = "Uxli2069Inux3129";
     let redirect_uri = &data.config.okta_oauth_redirect_url;
 
-    let token_request = TokenRequestPassword {
+    let token_request = TokenRequestAuthorizeCode {
         client_id,
         client_secret,
         code,
@@ -121,7 +128,7 @@ pub async fn oauth_callback(data: Data<AppState>, query: web::Query<OktaResponse
 
     local_var_req_builder = local_var_req_builder.header(reqwest::header::CONTENT_TYPE, "application/json");
     local_var_req_builder = local_var_req_builder.json(&token_request);
-    
+
     let local_var_req = local_var_req_builder.build().expect("Bad bad");
     let local_var_resp = local_var_client.execute(local_var_req).await.expect("Bad bad");
     let local_var_content = local_var_resp.json::<TokenResponsePassword>().await.expect("Bad bad");
@@ -161,11 +168,7 @@ pub async fn oauth_callback(data: Data<AppState>, query: web::Query<OktaResponse
     let iat = now.timestamp() as usize;
     let max_exp_in_mins = 1000;
     let exp = (now + chrono::Duration::minutes(max_exp_in_mins)).timestamp() as usize;
-    let claims: TokenClaims = TokenClaims {
-        sub: user_id,
-        exp,
-        iat,
-    };
+    let claims: TokenClaims = TokenClaims { sub: user_id, exp, iat };
 
     let token = jsonwebtoken::encode(
         &Header::default(),
@@ -185,7 +188,7 @@ pub async fn oauth_callback(data: Data<AppState>, query: web::Query<OktaResponse
 }
 
 #[get("/authorize")]
-async fn oauth_login(data: Data<AppState>) -> Result<impl Responder, ErrorResponse> {
+async fn oauth_login_2(data: Data<AppState>) -> Result<impl Responder, ErrorResponse> {
     let local_var_client = Client::new();
 
     let domain_string = &data.config.okta_oauth_domain;
@@ -210,6 +213,84 @@ async fn oauth_login(data: Data<AppState>) -> Result<impl Responder, ErrorRespon
     let redirect_url = local_var_req.url().to_string();
 
     Ok(actix_web::web::Redirect::to(redirect_url).see_other())
+}
+
+#[derive(Deserialize, Default, Debug)]
+pub struct KeyResult {
+    pub kty: String,
+    #[serde(rename = "use")]
+    pub usage: String,
+    pub n: String,
+    pub e: String,
+    pub kid: String,
+    pub x5t: String,
+    pub alg: String,
+}
+
+#[derive(Deserialize, Default, Debug)]
+pub struct KeysResult {
+    pub keys: Vec<KeyResult>,
+}
+
+pub async fn validate_token(access_token: &str, domain_string: &str) -> Result<TokenData<TokenClaims>, Error> {
+    let client = Client::new();
+
+    let mut validation = Validation::new(Algorithm::RS256);
+    validation.set_audience(&[format!("https://{0}/api/v2/", domain_string)]);
+
+    let local_var_uri_str = format!("https://{0}/.well-known/jwks.json", domain_string);
+    let uri_str = Url::parse(&local_var_uri_str).expect("Bad url");
+
+    let response = client
+        .get(uri_str)
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .expect("Bad send request");
+    let des_result = response.json::<KeysResult>().await.unwrap();
+
+    let n = &des_result.keys[0].n;
+    let e = &des_result.keys[0].e;
+    decode::<TokenClaims>(
+        access_token,
+        &DecodingKey::from_rsa_components(n, e).unwrap(),
+        &validation,
+    )
+}
+
+#[derive(Serialize)]
+pub struct LoginResponse {
+    pub access_token: String,
+}
+
+#[post("/authorize")]
+async fn oauth_login(
+    data: Data<AppState>,
+    token_request_body: web::Form<TokenRequestPassword>,
+) -> Result<impl Responder, ErrorResponse> {
+    let local_var_client = Client::new();
+
+    let domain_string = &data.config.okta_oauth_domain;
+    let local_var_uri_str = format!("https://{0}/oauth/token", domain_string);
+    let mut local_var_req_builder = local_var_client.request(reqwest::Method::POST, local_var_uri_str.as_str());
+
+    local_var_req_builder = local_var_req_builder.header(reqwest::header::CONTENT_TYPE, "application/json");
+    local_var_req_builder = local_var_req_builder.json(&token_request_body);
+
+    let local_var_req = local_var_req_builder.build().expect("Bad bad");
+    let local_var_resp = local_var_client.execute(local_var_req).await.expect("Bad bad");
+    let local_var_content = local_var_resp.json::<TokenResponsePassword>().await.expect("Bad bad");
+
+    let access_token = local_var_content.access_token;
+    let _google_user = get_okta_user(&access_token, domain_string).await;
+
+    let decoded = validate_token(&access_token, domain_string).await;
+    if decoded.is_ok() {
+        let response_body = LoginResponse { access_token };
+        Ok(HttpResponse::Ok().json(response_body))
+    } else {
+        Ok(HttpResponse::Unauthorized().finish())
+    }
 }
 
 #[get("/logout")]

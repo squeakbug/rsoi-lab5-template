@@ -4,6 +4,7 @@ use actix_web_validator::Path;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
+use crate::app::api::auth_token::AuthenticationGuard;
 use crate::app::api::error_controller::*;
 use crate::app::api::state::AppState;
 
@@ -15,7 +16,7 @@ pub struct GetRequestQuery {
 }
 
 #[get("/flights")]
-pub async fn list(state: Data<AppState>, query: web::Query<GetRequestQuery>) -> Result<impl Responder, ErrorResponse> {
+pub async fn list(state: Data<AppState>, _: AuthenticationGuard, query: web::Query<GetRequestQuery>) -> Result<impl Responder, ErrorResponse> {
     state
         .person_service
         .get_flights(query.page, query.size, query.flight_number.clone())
@@ -30,7 +31,7 @@ pub struct GetRequestPath {
 }
 
 #[get("/flights/{id}")]
-pub async fn get_id(state: Data<AppState>, path: Path<GetRequestPath>) -> Result<impl Responder, ErrorResponse> {
+pub async fn get_id(state: Data<AppState>, _: AuthenticationGuard, path: Path<GetRequestPath>) -> Result<impl Responder, ErrorResponse> {
     let id = path.id;
     state
         .person_service

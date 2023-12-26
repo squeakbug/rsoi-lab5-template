@@ -53,6 +53,7 @@ pub enum ListTicketsError {
 }
 
 pub async fn create_ticket(
+    token: String,
     configuration: &configuration::Configuration,
     ticket_request: crate::models::TicketRequest,
 ) -> Result<(), Error<CreateTicketError>> {
@@ -67,6 +68,7 @@ pub async fn create_ticket(
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
     local_var_req_builder = local_var_req_builder.json(&ticket_request);
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -88,6 +90,7 @@ pub async fn create_ticket(
 }
 
 pub async fn edit_ticket(
+    token: String,
     configuration: &configuration::Configuration,
     ticket_uid: &str,
     ticket_request: crate::models::TicketRequest,
@@ -107,6 +110,7 @@ pub async fn edit_ticket(
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
     local_var_req_builder = local_var_req_builder.json(&ticket_request);
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -128,6 +132,7 @@ pub async fn edit_ticket(
 }
 
 pub async fn edit_ticket1(
+    token: String,
     configuration: &configuration::Configuration,
     ticket_uid: &str,
 ) -> Result<(), Error<EditTicket1Error>> {
@@ -145,6 +150,7 @@ pub async fn edit_ticket1(
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -166,6 +172,7 @@ pub async fn edit_ticket1(
 }
 
 pub async fn get_ticket(
+    token: String,
     configuration: &configuration::Configuration,
     ticket_uid: &str,
 ) -> Result<crate::models::TicketResponse, Error<GetTicketError>> {
@@ -183,6 +190,7 @@ pub async fn get_ticket(
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
@@ -204,6 +212,7 @@ pub async fn get_ticket(
 }
 
 pub async fn list_tickets(
+    token: String,
     configuration: &configuration::Configuration,
     username: Option<&str>,
     flight_number: Option<&str>,
@@ -224,6 +233,7 @@ pub async fn list_tickets(
     if let Some(ref local_var_user_agent) = local_var_configuration.user_agent {
         local_var_req_builder = local_var_req_builder.header(reqwest::header::USER_AGENT, local_var_user_agent.clone());
     }
+    local_var_req_builder = local_var_req_builder.bearer_auth(token);
 
     let local_var_req = local_var_req_builder.build()?;
     let local_var_resp = local_var_client.execute(local_var_req).await?;
